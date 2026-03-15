@@ -1,8 +1,5 @@
 # AI-Based Fake Job Offer Detection System
 
-This project detects fake job offers and scam companies using machine learning and threat intelligence techniques.
-It helps users identify fraudulent recruitment offers and avoid online scams.
-
 ## MCA Level Project
 
 A professional Flask web application that uses AI and rule-based detection to identify fake job postings and protect job seekers from scams.

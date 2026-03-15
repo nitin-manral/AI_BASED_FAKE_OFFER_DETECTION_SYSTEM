@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import pickle
 import os
 import csv
+import sys
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from reportlab.lib.pagesizes import letter
@@ -82,80 +83,102 @@ class Admin(db.Model):
 
 class MLModel:
     def __init__(self):
-        self.vectorizer = TfidfVectorizer(max_features=500)
-        self.model = LogisticRegression()
+        self.vectorizer = TfidfVectorizer(max_features=500, stop_words='english')
+        self.model = LogisticRegression(random_state=42)
         self.trained = False
     
     def train(self):
-        fake_samples = [
-            "urgent hiring immediate joining work from home earn money fast no experience required",
-            "pay registration fee deposit money advance payment processing fee refundable",
-            "guaranteed income easy money quick cash part time full time flexible",
-            "contact whatsapp telegram personal email gmail yahoo hotmail",
-            "no interview required instant selection immediate offer letter joining",
-            "earn lakhs per month unlimited income passive income guaranteed salary",
-            "investment required security deposit refundable amount advance fee",
-            "data entry copy paste simple typing job easy work",
-            "limited seats hurry up last date today only apply now",
-            "send resume to gmail id personal contact number whatsapp",
-            "work from home part time earn money online no investment",
-            "registration fee processing charges document verification fee payment",
-            "guaranteed job placement immediate joining urgent requirement freshers",
-            "no experience needed training provided earn while you learn",
-            "unlimited earning potential passive income side hustle extra income",
-            "contact hr manager personal email gmail yahoo rediffmail",
-            "instant approval no questions asked easy application process",
-            "earn thousands daily weekly monthly payment guaranteed income",
-            "simple data entry typing copy paste work from anywhere",
-            "limited time offer hurry last few seats available today",
-            "send cv resume to personal gmail contact whatsapp number",
-            "advance payment security deposit registration charges refundable fee",
-            "no interview direct selection offer letter immediate joining bonus",
-            "work from home flexible timing part time full time students",
-            "easy money quick cash earn lakhs guaranteed high salary"
-        ]
-        genuine_samples = [
-            "bachelor degree required minimum experience years technical skills programming",
-            "apply through official website career portal company email domain",
-            "interview process multiple rounds technical assessment hr round",
-            "competitive salary benefits health insurance provident fund gratuity",
-            "job description responsibilities qualifications required skills experience",
-            "company overview established organization industry leader reputation",
-            "professional development training opportunities career growth advancement",
-            "office location work schedule full time employment permanent position",
-            "equal opportunity employer diversity inclusion workplace culture",
-            "official recruitment no fees charged transparent process legitimate",
-            "minimum qualification degree experience required technical skills",
-            "apply official career portal company website recruitment page",
-            "selection process aptitude test technical interview hr discussion",
-            "salary package benefits medical insurance pf esi leave policy",
-            "job responsibilities duties qualifications eligibility criteria requirements",
-            "established company reputed organization industry experience track record",
-            "training program skill development career progression growth opportunities",
-            "work location office address reporting time full time permanent",
-            "equal employment opportunity merit based selection fair process",
-            "legitimate recruitment official process no payment required free",
-            "educational qualification work experience technical expertise required",
-            "company career page official recruitment portal application process",
-            "interview rounds assessment tests evaluation criteria selection procedure",
-            "compensation package employee benefits insurance retirement plans",
-            "role description key responsibilities required qualifications skills"
-        ]
-        
-        X = fake_samples + genuine_samples
-        y = [1] * len(fake_samples) + [0] * len(genuine_samples)
-        
-        X_vec = self.vectorizer.fit_transform(X)
-        self.model.fit(X_vec, y)
-        self.trained = True
+        try:
+            fake_samples = [
+                "urgent hiring immediate joining work from home earn money fast no experience required",
+                "pay registration fee deposit money advance payment processing fee refundable",
+                "guaranteed income easy money quick cash part time full time flexible",
+                "contact whatsapp telegram personal email gmail yahoo hotmail",
+                "no interview required instant selection immediate offer letter joining",
+                "earn lakhs per month unlimited income passive income guaranteed salary",
+                "investment required security deposit refundable amount advance fee",
+                "data entry copy paste simple typing job easy work",
+                "limited seats hurry up last date today only apply now",
+                "send resume to gmail id personal contact number whatsapp",
+                "work from home part time earn money online no investment",
+                "registration fee processing charges document verification fee payment",
+                "guaranteed job placement immediate joining urgent requirement freshers",
+                "no experience needed training provided earn while you learn",
+                "unlimited earning potential passive income side hustle extra income",
+                "contact hr manager personal email gmail yahoo rediffmail",
+                "instant approval no questions asked easy application process",
+                "earn thousands daily weekly monthly payment guaranteed income",
+                "simple data entry typing copy paste work from anywhere",
+                "limited time offer hurry last few seats available today",
+                "send cv resume to personal gmail contact whatsapp number",
+                "advance payment security deposit registration charges refundable fee",
+                "no interview direct selection offer letter immediate joining bonus",
+                "work from home flexible timing part time full time students",
+                "easy money quick cash earn lakhs guaranteed high salary"
+            ]
+            genuine_samples = [
+                "bachelor degree required minimum experience years technical skills programming",
+                "apply through official website career portal company email domain",
+                "interview process multiple rounds technical assessment hr round",
+                "competitive salary benefits health insurance provident fund gratuity",
+                "job description responsibilities qualifications required skills experience",
+                "company overview established organization industry leader reputation",
+                "professional development training opportunities career growth advancement",
+                "office location work schedule full time employment permanent position",
+                "equal opportunity employer diversity inclusion workplace culture",
+                "official recruitment no fees charged transparent process legitimate",
+                "minimum qualification degree experience required technical skills",
+                "apply official career portal company website recruitment page",
+                "selection process aptitude test technical interview hr discussion",
+                "salary package benefits medical insurance pf esi leave policy",
+                "job responsibilities duties qualifications eligibility criteria requirements",
+                "established company reputed organization industry experience track record",
+                "training program skill development career progression growth opportunities",
+                "work location office address reporting time full time permanent",
+                "equal employment opportunity merit based selection fair process",
+                "legitimate recruitment official process no payment required free",
+                "educational qualification work experience technical expertise required",
+                "company career page official recruitment portal application process",
+                "interview rounds assessment tests evaluation criteria selection procedure",
+                "compensation package employee benefits insurance retirement plans",
+                "role description key responsibilities required qualifications skills"
+            ]
+            
+            X = fake_samples + genuine_samples
+            y = [1] * len(fake_samples) + [0] * len(genuine_samples)
+            
+            X_vec = self.vectorizer.fit_transform(X)
+            self.model.fit(X_vec, y)
+            self.trained = True
+            return True
+        except Exception as e:
+            print(f"ML Model training error: {str(e)}")
+            self.trained = False
+            return False
     
     def predict(self, text):
-        if not self.trained:
-            self.train()
-        X_vec = self.vectorizer.transform([text])
-        prediction = self.model.predict(X_vec)[0]
-        probability = self.model.predict_proba(X_vec)[0]
-        return "Fake" if prediction == 1 else "Genuine", max(probability) * 100
+        try:
+            if not self.trained:
+                if not self.train():
+                    return "Unknown", 0.0
+            
+            if not text or not text.strip():
+                return "Unknown", 0.0
+                
+            # Clean and preprocess text
+            text = str(text).strip()
+            
+            X_vec = self.vectorizer.transform([text])
+            prediction = self.model.predict(X_vec)[0]
+            probability = self.model.predict_proba(X_vec)[0]
+            
+            prediction_label = "Fake" if prediction == 1 else "Genuine"
+            confidence = max(probability) * 100
+            
+            return prediction_label, confidence
+        except Exception as e:
+            print(f"ML Model prediction error: {str(e)}")
+            return "Unknown", 0.0
 
 ml_model = MLModel()
 
@@ -168,6 +191,10 @@ def check_suspicious_keywords(text):
         'limited seats', 'hurry up', 'last date today', 'no interview'
     ]
     found = []
+    
+    if not text or not isinstance(text, str):
+        return found
+        
     text_lower = text.lower()
     for word in suspicious_words:
         if word in text_lower:
@@ -215,9 +242,52 @@ def check_email_domain_mismatch(email, url):
     except:
         return False
 
+def calculate_reputation_score(company_name, domain_age, has_https, email_mismatch, red_flags):
+    """Calculate company reputation score based on multiple factors"""
+    reputation_score = 100  # Start with perfect score
+    
+    # Domain age factor (0-30 points deduction)
+    if domain_age is not None:
+        if domain_age < 30:
+            reputation_score -= 30
+        elif domain_age < 90:
+            reputation_score -= 20
+        elif domain_age < 180:
+            reputation_score -= 10
+    else:
+        reputation_score -= 15  # Unknown domain age
+    
+    # SSL/HTTPS factor (0-20 points deduction)
+    if not has_https:
+        reputation_score -= 20
+    
+    # Email authenticity (0-25 points deduction)
+    if email_mismatch:
+        reputation_score -= 25
+    
+    # Content quality (0-25 points deduction)
+    if red_flags and isinstance(red_flags, list):
+        reputation_score -= min(len(red_flags) * 5, 25)
+    
+    # Check against known fake companies
+    if company_name:
+        fake_company = FakeCompany.query.filter_by(name=company_name).first()
+        if fake_company:
+            reputation_score -= 50  # Major deduction for known scammer
+        
+        # Check against genuine companies (bonus)
+        genuine_company = GenuineCompany.query.filter_by(name=company_name).first()
+        if genuine_company:
+            reputation_score = min(reputation_score + 20, 100)  # Bonus for verified company
+    
+    return max(reputation_score, 0)  # Ensure score doesn't go below 0
+
 def calculate_risk_score(red_flags, domain_age, has_https, email_mismatch, ml_prediction):
     score = 0
-    score += len(red_flags) * 8
+    
+    # Handle red_flags safely
+    if red_flags and isinstance(red_flags, list):
+        score += len(red_flags) * 8
     
     if domain_age is not None and domain_age < 180:
         score += 25
@@ -230,10 +300,19 @@ def calculate_risk_score(red_flags, domain_age, has_https, email_mismatch, ml_pr
     if email_mismatch:
         score += 25
     
-    if ml_prediction == "Fake":
+    if ml_prediction and ml_prediction == "Fake":
         score += 40
     
     return min(score, 100)
+
+def get_reputation_level(score):
+    """Convert reputation score to level"""
+    if score >= 80:
+        return "High Reputation"
+    elif score >= 50:
+        return "Medium Reputation"
+    else:
+        return "Low Reputation"
 
 def get_risk_category(score):
     if score < 35:
@@ -270,62 +349,188 @@ def index():
 
 @app.route('/analyze', methods=['GET', 'POST'])
 def analyze():
-    if request.method == 'POST':
-        job_link = request.form.get('job_link', '')
-        job_description = request.form.get('job_description', '')
-        company_name = request.form.get('company_name', '')
-        hr_email = request.form.get('hr_email', '')
-        
-        combined_text = f"{job_description} {company_name}"
-        red_flags = check_suspicious_keywords(combined_text)
-        
-        domain_age = check_domain_age(job_link) if job_link else None
-        has_https = check_https_ssl(job_link) if job_link else False
-        email_mismatch = check_email_domain_mismatch(hr_email, job_link) if hr_email and job_link else False
-        
-        ml_prediction, ml_confidence = ml_model.predict(job_description)
-        
-        risk_score = calculate_risk_score(red_flags, domain_age, has_https, email_mismatch, ml_prediction)
-        risk_category = get_risk_category(risk_score)
-        recommendation = get_recommendation(risk_score)
-        
-        # Generate AI Explanations
-        ai_explanations = generate_ai_explanations(red_flags, domain_age, has_https, email_mismatch, ml_prediction, hr_email)
-        
-        scan = ScanHistory(
-            company_name=company_name,
-            job_link=job_link,
-            risk_score=risk_score,
-            risk_category=risk_category,
-            ml_prediction=ml_prediction,
-            red_flags=', '.join(red_flags)
-        )
-        db.session.add(scan)
-        db.session.commit()
-        
-        return render_template('analyze.html', 
-                             result=True,
-                             company_name=company_name,
-                             risk_score=risk_score,
-                             risk_category=risk_category,
-                             ml_prediction=ml_prediction,
-                             ml_confidence=round(ml_confidence, 2),
-                             red_flags=red_flags,
-                             domain_age=domain_age,
-                             has_https=has_https,
-                             email_mismatch=email_mismatch,
-                             recommendation=recommendation,
-                             scan_id=scan.id,
-                             job_description=job_description,
-                             ai_explanations=ai_explanations)
+    # Initialize all template variables with safe defaults
+    template_vars = {
+        'result': False,
+        'company_name': '',
+        'job_link': '',
+        'hr_email': '',
+        'job_description': '',
+        'risk_score': 0,
+        'risk_category': 'Low',
+        'ml_prediction': 'Unknown',
+        'ml_confidence': 0,
+        'red_flags': [],
+        'domain_age': None,
+        'has_https': False,
+        'email_mismatch': False,
+        'recommendation': 'Please submit a job posting for analysis.',
+        'reputation_score': 50,
+        'reputation_level': 'Unknown',
+        'scan_id': 1,
+        'ai_explanations': []
+    }
     
-    return render_template('analyze.html', result=False)
+    if request.method == 'POST':
+        # Get form data
+        job_link = request.form.get('job_link', '').strip()
+        job_description = request.form.get('job_description', '').strip()
+        company_name = request.form.get('company_name', '').strip()
+        hr_email = request.form.get('hr_email', '').strip()
+        
+        # Update template variables with form data
+        template_vars.update({
+            'result': True,
+            'company_name': company_name,
+            'job_link': job_link,
+            'hr_email': hr_email,
+            'job_description': job_description
+        })
+        
+        try:
+            # Analyze job description for suspicious keywords
+            if job_description and company_name:
+                combined_text = f"{job_description} {company_name}"
+                red_flags = check_suspicious_keywords(combined_text)
+                template_vars['red_flags'] = red_flags
+            
+            # Check domain information
+            if job_link:
+                try:
+                    domain_age = check_domain_age(job_link)
+                    template_vars['domain_age'] = domain_age
+                except:
+                    template_vars['domain_age'] = None
+                    
+                try:
+                    has_https = check_https_ssl(job_link)
+                    template_vars['has_https'] = has_https
+                except:
+                    template_vars['has_https'] = False
+            
+            # Check email domain mismatch
+            if hr_email and job_link:
+                try:
+                    email_mismatch = check_email_domain_mismatch(hr_email, job_link)
+                    template_vars['email_mismatch'] = email_mismatch
+                except:
+                    template_vars['email_mismatch'] = False
+            elif hr_email:
+                # Check if it's a free email service
+                try:
+                    email_domain = hr_email.split('@')[1].lower()
+                    free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com']
+                    template_vars['email_mismatch'] = email_domain in free_domains
+                except:
+                    template_vars['email_mismatch'] = False
+            
+            # Get ML prediction - ensure it's always set
+            try:
+                if job_description:
+                    ml_prediction, ml_confidence = ml_model.predict(job_description)
+                    template_vars['ml_prediction'] = str(ml_prediction) if ml_prediction else 'Unknown'
+                    template_vars['ml_confidence'] = round(float(ml_confidence), 2) if ml_confidence else 0
+                else:
+                    template_vars['ml_prediction'] = 'Unknown'
+                    template_vars['ml_confidence'] = 0
+            except Exception as e:
+                print(f"ML prediction error: {str(e)}")
+                template_vars['ml_prediction'] = 'Unknown'
+                template_vars['ml_confidence'] = 0
+            
+            # Calculate risk scores
+            try:
+                risk_score = calculate_risk_score(
+                    template_vars['red_flags'], 
+                    template_vars['domain_age'], 
+                    template_vars['has_https'], 
+                    template_vars['email_mismatch'], 
+                    template_vars['ml_prediction']
+                )
+                template_vars['risk_score'] = risk_score
+                template_vars['risk_category'] = get_risk_category(risk_score)
+                template_vars['recommendation'] = get_recommendation(risk_score)
+            except:
+                template_vars['risk_score'] = 50
+                template_vars['risk_category'] = 'Medium'
+                template_vars['recommendation'] = 'Analysis completed with limited data. Please verify company details manually.'
+            
+            # Calculate company reputation score
+            try:
+                reputation_score = calculate_reputation_score(
+                    company_name, 
+                    template_vars['domain_age'], 
+                    template_vars['has_https'], 
+                    template_vars['email_mismatch'], 
+                    template_vars['red_flags']
+                )
+                template_vars['reputation_score'] = reputation_score
+                template_vars['reputation_level'] = get_reputation_level(reputation_score)
+            except:
+                template_vars['reputation_score'] = 50
+                template_vars['reputation_level'] = 'Unknown'
+            
+            # Generate AI Explanations
+            try:
+                ai_explanations = generate_ai_explanations(
+                    template_vars['red_flags'], 
+                    template_vars['domain_age'], 
+                    template_vars['has_https'], 
+                    template_vars['email_mismatch'], 
+                    template_vars['ml_prediction'], 
+                    hr_email
+                )
+                template_vars['ai_explanations'] = ai_explanations
+            except:
+                template_vars['ai_explanations'] = []
+            
+        except Exception as e:
+            # Log error but continue with safe defaults
+            print(f"Analysis error: {str(e)}")
+            template_vars['recommendation'] = 'Analysis encountered an error. Please try again or verify company details manually.'
+        
+        # Save scan to database
+        try:
+            scan = ScanHistory(
+                company_name=template_vars['company_name'],
+                job_link=template_vars['job_link'],
+                risk_score=template_vars['risk_score'],
+                risk_category=template_vars['risk_category'],
+                ml_prediction=template_vars['ml_prediction'],
+                red_flags=', '.join(template_vars['red_flags'])
+            )
+            db.session.add(scan)
+            db.session.commit()
+            template_vars['scan_id'] = scan.id
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+            template_vars['scan_id'] = 1  # Default scan ID
+    
+    # Final safety check - ensure all critical variables are defined
+    if 'ml_prediction' not in template_vars or template_vars['ml_prediction'] is None:
+        template_vars['ml_prediction'] = 'Unknown'
+    if 'ml_confidence' not in template_vars or template_vars['ml_confidence'] is None:
+        template_vars['ml_confidence'] = 0
+    if 'red_flags' not in template_vars or template_vars['red_flags'] is None:
+        template_vars['red_flags'] = []
+    if 'ai_explanations' not in template_vars or template_vars['ai_explanations'] is None:
+        template_vars['ai_explanations'] = []
+    
+    return render_template('analyze.html', **template_vars)
 
 def generate_ai_explanations(red_flags, domain_age, has_https, email_mismatch, ml_prediction, hr_email=''):
     explanations = []
     
+    # Ensure red_flags is a list
+    if red_flags is None:
+        red_flags = []
+    
+    # Ensure ml_prediction is a string
+    if ml_prediction is None:
+        ml_prediction = 'Unknown'
+    
     # Suspicious keywords explanation
-    if red_flags:
+    if red_flags and len(red_flags) > 0:
         explanations.append({
             'type': 'danger',
             'icon': 'fas fa-exclamation-triangle',
@@ -503,31 +708,54 @@ def fake_company_detail(id):
 
 @app.route('/rate-company/<int:id>', methods=['POST'])
 def rate_company(id):
-    rating_value = request.form.get('rating', type=int)
-    comment = request.form.get('comment', '')
-    user_name = request.form.get('user_name', 'Anonymous')
+    try:
+        rating_value = request.form.get('rating', type=int)
+        comment = request.form.get('comment', '').strip()
+        user_name = request.form.get('user_name', '').strip()
+        
+        if not rating_value or rating_value < 1 or rating_value > 5:
+            flash('Please provide a valid rating (1-5)!', 'danger')
+            return redirect(url_for('fake_company_detail', id=id))
+        
+        if not user_name:
+            user_name = 'Anonymous'
+        
+        rating = Rating(company_id=id, rating=rating_value, comment=comment, user_name=user_name)
+        db.session.add(rating)
+        db.session.commit()
+        
+        flash('Rating submitted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Rating submission error: {str(e)}")
+        flash('Error submitting rating. Please try again.', 'danger')
     
-    rating = Rating(company_id=id, rating=rating_value, comment=comment, user_name=user_name)
-    db.session.add(rating)
-    db.session.commit()
-    
-    flash('Rating submitted successfully!', 'success')
     return redirect(url_for('fake_company_detail', id=id))
 
 @app.route('/submit-complaint', methods=['POST'])
 def submit_complaint():
-    company_name = request.form.get('company_name')
-    complaint_text = request.form.get('complaint_text')
+    try:
+        company_name = request.form.get('company_name', '').strip()
+        complaint_text = request.form.get('complaint_text', '').strip()
+        
+        if not company_name or not complaint_text:
+            flash('Please fill in all required fields!', 'danger')
+            return redirect(url_for('fake_companies'))
+        
+        complaint = Complaint(company_name=company_name, complaint_text=complaint_text)
+        db.session.add(complaint)
+        
+        fake_company = FakeCompany.query.filter_by(name=company_name).first()
+        if fake_company:
+            fake_company.complaint_count += 1
+        
+        db.session.commit()
+        flash('Complaint submitted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Complaint submission error: {str(e)}")
+        flash('Error submitting complaint. Please try again.', 'danger')
     
-    complaint = Complaint(company_name=company_name, complaint_text=complaint_text)
-    db.session.add(complaint)
-    
-    fake_company = FakeCompany.query.filter_by(name=company_name).first()
-    if fake_company:
-        fake_company.complaint_count += 1
-    
-    db.session.commit()
-    flash('Complaint submitted successfully!', 'success')
     return redirect(url_for('fake_companies'))
 
 @app.route('/genuine-companies')
@@ -677,16 +905,25 @@ def download_report(scan_id):
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
         
-        admin = Admin.query.filter_by(username=username, password=password).first()
-        if admin:
-            session['admin'] = True
-            flash('Login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid credentials!', 'danger')
+        if not username or not password:
+            flash('Please enter both username and password!', 'danger')
+            return render_template('admin_login.html')
+        
+        try:
+            admin = Admin.query.filter_by(username=username, password=password).first()
+            if admin:
+                session['admin'] = True
+                session['admin_username'] = username
+                flash('Login successful!', 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash('Invalid credentials!', 'danger')
+        except Exception as e:
+            print(f"Admin login error: {str(e)}")
+            flash('Login error occurred. Please try again.', 'danger')
     
     return render_template('admin_login.html')
 
@@ -917,178 +1154,94 @@ def admin_complaints():
     return render_template('admin_complaints.html', complaints=complaints)
 
 def init_db():
-    with app.app_context():
-        db.create_all()
-        
-        if not Admin.query.filter_by(username='admin').first():
-            admin = Admin(username='admin', password='admin123')
-            db.session.add(admin)
-        
-        if FakeCompany.query.count() == 0:
-            fake_companies = [
-                FakeCompany(name="QuickCash Solutions", scam_type="Advance Fee Fraud",
-                          complaint_count=45,
-                          how_scam_works="They ask for registration fees ranging from ₹500-5000 promising high-paying work-from-home jobs. After payment, they disappear or provide fake assignments."),
-                FakeCompany(name="Global Data Entry Ltd", scam_type="Data Entry Scam",
-                          complaint_count=78,
-                          how_scam_works="Promise easy data entry jobs with high pay. Require security deposit. Provide impossible targets and never pay salaries."),
-                FakeCompany(name="HomeJobs India", scam_type="Work From Home Fraud",
-                          complaint_count=92,
-                          how_scam_works="Advertise lucrative WFH opportunities. Collect personal information and registration fees. No actual work provided."),
-            ]
-            db.session.add_all(fake_companies)
-        
-        if GenuineCompany.query.count() == 0:
-            genuine_companies = [
-                GenuineCompany(
-                    name="Tata Consultancy Services",
-                    website="https://www.tcs.com/careers",
-                    overview="TCS is a global leader in IT services, consulting, and business solutions with over 500,000 employees worldwide.",
-                    hiring_process="Online application → Aptitude test → Technical interview → HR interview → Offer letter",
-                    eligibility="B.E/B.Tech/MCA with minimum 60% aggregate. No backlogs preferred.",
-                    safety_tips="Always apply through official TCS careers portal. TCS never charges any fee for recruitment. Verify offer letters through official channels.",
-                    industry="IT Services",
-                    founded_year="1968",
-                    headquarters="Mumbai, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Tata_Consultancy_Services_Logo.svg/200px-Tata_Consultancy_Services_Logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Infosys Limited",
-                    website="https://www.infosys.com/careers",
-                    overview="Infosys is a global leader in next-generation digital services and consulting, helping clients navigate their digital transformation.",
-                    hiring_process="Campus recruitment / Online portal → Online test → Technical + HR interview → Offer letter",
-                    eligibility="Engineering graduates with good academic record. Strong programming and analytical skills.",
-                    safety_tips="Apply only through official Infosys careers website. No payment required at any stage. Beware of fake offer letters.",
-                    industry="IT Services",
-                    founded_year="1981",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Infosys_logo.svg/200px-Infosys_logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Wipro Technologies",
-                    website="https://careers.wipro.com",
-                    overview="Wipro is a leading global IT consulting and business process services company with 250,000+ employees.",
-                    hiring_process="Online application → Coding test → Technical interview → HR discussion → Offer",
-                    eligibility="B.E/B.Tech/MCA/M.Sc with 60%+ marks. Good communication skills required.",
-                    safety_tips="Apply through official Wipro careers portal only. No registration fees. Verify recruiter credentials.",
-                    industry="IT Services",
-                    founded_year="1945",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Wipro_Primary_Logo_Color_RGB.svg/200px-Wipro_Primary_Logo_Color_RGB.svg.png"
-                ),
-                GenuineCompany(
-                    name="HCL Technologies",
-                    website="https://www.hcltech.com/careers",
-                    overview="HCL is a next-generation global technology company helping enterprises reimagine their businesses.",
-                    hiring_process="Apply online → Assessment → Technical + HR interview → Background verification → Offer",
-                    eligibility="Engineering/MCA graduates with good academic record. Freshers and experienced both welcome.",
-                    safety_tips="Official recruitment is free. Never pay for job placement. Verify offer through official channels.",
-                    industry="IT Services",
-                    founded_year="1976",
-                    headquarters="Noida, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/HCL_Technologies_logo.svg/200px-HCL_Technologies_logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Tech Mahindra",
-                    website="https://www.techmahindra.com/careers",
-                    overview="Tech Mahindra is a leading provider of digital transformation, consulting and business re-engineering services.",
-                    hiring_process="Online registration → Aptitude + Technical test → Interview rounds → Offer letter",
-                    eligibility="B.E/B.Tech/MCA with minimum 60%. Strong technical and communication skills.",
-                    safety_tips="Apply only through official website. No fees for recruitment. Beware of fake job offers.",
-                    industry="IT Services",
-                    founded_year="1986",
-                    headquarters="Pune, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Tech_Mahindra_New_Logo.svg/200px-Tech_Mahindra_New_Logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Accenture India",
-                    website="https://www.accenture.com/in-en/careers",
-                    overview="Accenture is a global professional services company with leading capabilities in digital, cloud and security.",
-                    hiring_process="Online application → Online assessment → Multiple interview rounds → Offer",
-                    eligibility="Engineering/MCA graduates. Strong problem-solving and analytical skills required.",
-                    safety_tips="Official recruitment process is completely free. Verify all communications through official channels.",
-                    industry="Consulting",
-                    founded_year="1989",
-                    headquarters="Mumbai, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Accenture.svg/200px-Accenture.svg.png"
-                ),
-                GenuineCompany(
-                    name="Amazon India",
-                    website="https://www.amazon.jobs/en/locations/india",
-                    overview="Amazon is a global technology company focusing on e-commerce, cloud computing, and artificial intelligence.",
-                    hiring_process="Online application → Online assessment → Technical interviews → Bar raiser → Offer",
-                    eligibility="B.E/B.Tech/MCA with excellent coding skills. Strong CS fundamentals required.",
-                    safety_tips="Amazon recruitment is free. Apply through official Amazon jobs portal. Verify all communications.",
-                    industry="E-commerce",
-                    founded_year="2013",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/200px-Amazon_logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Google India",
-                    website="https://careers.google.com/locations/india",
-                    overview="Google is a global technology leader specializing in Internet services and products including search, cloud computing, and advertising.",
-                    hiring_process="Apply online → Phone screening → Technical interviews → Team matching → Offer",
-                    eligibility="B.E/B.Tech/MCA with excellent coding and problem-solving skills. Strong CS fundamentals.",
-                    safety_tips="Google never charges recruitment fees. Apply only through official Google careers website.",
-                    industry="Technology",
-                    founded_year="2004",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Microsoft India",
-                    website="https://careers.microsoft.com/india",
-                    overview="Microsoft is a leading technology company that develops, licenses, and supports software, services, and devices.",
-                    hiring_process="Online application → Coding test → Technical interviews → HR round → Offer",
-                    eligibility="B.E/B.Tech/MCA with strong programming skills. Good academic record required.",
-                    safety_tips="Microsoft recruitment is completely free. Verify all communications through official channels.",
-                    industry="Technology",
-                    founded_year="1990",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/200px-Microsoft_logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Flipkart",
-                    website="https://www.flipkartcareers.com",
-                    overview="Flipkart is India's leading e-commerce marketplace offering a wide range of products and services.",
-                    hiring_process="Apply online → Online test → Technical interviews → HR discussion → Offer",
-                    eligibility="B.E/B.Tech/MCA with good coding skills. Problem-solving ability essential.",
-                    safety_tips="Flipkart recruitment is free. Apply through official Flipkart careers portal. No payment required.",
-                    industry="E-commerce",
-                    founded_year="2007",
-                    headquarters="Bangalore, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Flipkart-logo.svg/200px-Flipkart-logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="HDFC Bank",
-                    website="https://www.hdfcbank.com/personal/about-us/careers",
-                    overview="HDFC Bank is India's largest private sector bank offering comprehensive banking and financial services.",
-                    hiring_process="Apply online → Written test → Group discussion → Personal interview → Offer",
-                    eligibility="Graduates/Post-graduates with good academic record. Banking knowledge preferred.",
-                    safety_tips="HDFC Bank never asks for money during recruitment. Apply through official bank website only.",
-                    industry="Banking",
-                    founded_year="1994",
-                    headquarters="Mumbai, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/HDFC_Bank_Logo.svg/200px-HDFC_Bank_Logo.svg.png"
-                ),
-                GenuineCompany(
-                    name="Reliance Industries",
-                    website="https://www.ril.com/Careers.aspx",
-                    overview="Reliance Industries is India's largest private sector company with businesses in energy, petrochemicals, retail, and telecom.",
-                    hiring_process="Apply online → Assessment → Technical + HR interviews → Offer",
-                    eligibility="B.E/B.Tech/MBA with relevant specialization. Good academic record required.",
-                    safety_tips="Reliance never asks for payment during hiring. Apply through official Reliance careers portal.",
-                    industry="Conglomerate",
-                    founded_year="1966",
-                    headquarters="Mumbai, India",
-                    logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Reliance_Industries_Logo.svg/200px-Reliance_Industries_Logo.svg.png"
-                ),
-            ]
-            db.session.add_all(genuine_companies)
-        
-        db.session.commit()
+    try:
+        with app.app_context():
+            db.create_all()
+            
+            # Create admin user if not exists
+            if not Admin.query.filter_by(username='admin').first():
+                admin = Admin(username='admin', password='admin123')
+                db.session.add(admin)
+                print("Created default admin user (username: admin, password: admin123)")
+            
+            # Add fake companies if none exist
+            if FakeCompany.query.count() == 0:
+                fake_companies = [
+                    FakeCompany(name="QuickCash Solutions", scam_type="Advance Fee Fraud",
+                              complaint_count=45,
+                              how_scam_works="They ask for registration fees ranging from ₹500-5000 promising high-paying work-from-home jobs. After payment, they disappear or provide fake assignments."),
+                    FakeCompany(name="Global Data Entry Ltd", scam_type="Data Entry Scam",
+                              complaint_count=78,
+                              how_scam_works="Promise easy data entry jobs with high pay. Require security deposit. Provide impossible targets and never pay salaries."),
+                    FakeCompany(name="HomeJobs India", scam_type="Work From Home Fraud",
+                              complaint_count=92,
+                              how_scam_works="Advertise lucrative WFH opportunities. Collect personal information and registration fees. No actual work provided."),
+                ]
+                db.session.add_all(fake_companies)
+                print(f"Added {len(fake_companies)} fake companies to database")
+            
+            # Add genuine companies if none exist
+            if GenuineCompany.query.count() == 0:
+                genuine_companies = [
+                    GenuineCompany(
+                        name="Tata Consultancy Services",
+                        website="https://www.tcs.com/careers",
+                        overview="TCS is a global leader in IT services, consulting, and business solutions with over 500,000 employees worldwide.",
+                        hiring_process="Online application → Aptitude test → Technical interview → HR interview → Offer letter",
+                        eligibility="B.E/B.Tech/MCA with minimum 60% aggregate. No backlogs preferred.",
+                        safety_tips="Always apply through official TCS careers portal. TCS never charges any fee for recruitment. Verify offer letters through official channels.",
+                        industry="IT Services",
+                        founded_year="1968",
+                        headquarters="Mumbai, India",
+                        logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Tata_Consultancy_Services_Logo.svg/200px-Tata_Consultancy_Services_Logo.svg.png"
+                    ),
+                    GenuineCompany(
+                        name="Infosys Limited",
+                        website="https://www.infosys.com/careers",
+                        overview="Infosys is a global leader in next-generation digital services and consulting, helping clients navigate their digital transformation.",
+                        hiring_process="Campus recruitment / Online portal → Online test → Technical + HR interview → Offer letter",
+                        eligibility="Engineering graduates with good academic record. Strong programming and analytical skills.",
+                        safety_tips="Apply only through official Infosys careers website. No payment required at any stage. Beware of fake offer letters.",
+                        industry="IT Services",
+                        founded_year="1981",
+                        headquarters="Bangalore, India",
+                        logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Infosys_logo.svg/200px-Infosys_logo.svg.png"
+                    ),
+                    GenuineCompany(
+                        name="Wipro Technologies",
+                        website="https://careers.wipro.com",
+                        overview="Wipro is a leading global IT consulting and business process services company with 250,000+ employees.",
+                        hiring_process="Online application → Coding test → Technical interview → HR discussion → Offer",
+                        eligibility="B.E/B.Tech/MCA/M.Sc with 60%+ marks. Good communication skills required.",
+                        safety_tips="Apply through official Wipro careers portal only. No registration fees. Verify recruiter credentials.",
+                        industry="IT Services",
+                        founded_year="1945",
+                        headquarters="Bangalore, India",
+                        logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Wipro_Primary_Logo_Color_RGB.svg/200px-Wipro_Primary_Logo_Color_RGB.svg.png"
+                    )
+                ]
+                db.session.add_all(genuine_companies)
+                print(f"Added {len(genuine_companies)} genuine companies to database")
+            
+            db.session.commit()
+            print("Database initialization completed successfully")
+            
+    except Exception as e:
+        print(f"Database initialization error: {str(e)}")
+        try:
+            db.session.rollback()
+        except:
+            pass
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
+    try:
+        print("Starting AI Fake Job Detector...")
+        init_db()
+        print("Database initialized successfully")
+        print("Server starting on http://127.0.0.1:5000")
+        print("Admin credentials: username=admin, password=admin123")
+        app.run(host='127.0.0.1', port=5000, debug=True)
+    except Exception as e:
+        print(f"Failed to start application: {str(e)}")
+        print("Please check your Python environment and dependencies")
+        sys.exit(1)
